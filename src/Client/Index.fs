@@ -15,6 +15,7 @@ open Shared
 type Report = {
     Location: LocationResponse
     Crimes: CrimeResponse array
+    Weather: WeatherResponse
 }
 
 type ServerState =
@@ -50,6 +51,7 @@ let init () =
 let dojoApi =
     Remoting.createApi ()
     |> Remoting.withRouteBuilder Route.builder
+    // |> Remoting.withBaseUrl "https://app-safe-dojo.azurewebsites.com"
     |> Remoting.buildProxy<IDojoApi>
 
 let getResponse postcode = async {
@@ -58,8 +60,13 @@ let getResponse postcode = async {
     (* Task 4.4 WEATHER: Fetch the weather from the API endpoint you created.
        Then, save its value into the Report below. You'll need to add a new
        field to the Report type first, though! *)
+    let! weather = dojoApi.GetWeather postcode
 
-    return { Location = location; Crimes = crimes }
+    return {
+        Location = location
+        Crimes = crimes
+        Weather = weather
+    }
 }
 
 /// The update function knows how to update the model given a message.
@@ -83,7 +90,11 @@ let update msg model =
             Postcode = p
             (* Task 2.2 Validation. Use the Validation.isValidPostcode function to implement client-side form validation.
                Note that the validation is the same shared code that runs on the server! *)
-            ValidationError = None
+            // ValidationError = None
+            ValidationError =
+                match Validation.isValidPostcode p with
+                | true -> None
+                | false -> Some "Wrong postcode"
         },
         Cmd.none
 
@@ -146,12 +157,14 @@ module ViewParts =
         widget "Map" [
             PigeonMaps.map [
                 (* Task 3.2 MAP: Set the center of the map using map.center, supply the lat/long value as input. *)
+                map.center (lr.Location.LatLong.Latitude, lr.Location.LatLong.Longitude)
 
                 (* Task 3.3 MAP: Update the Zoom to 15. *)
-                map.zoom 12
+                map.zoom 15
                 map.height 500
                 map.markers [
-                (* Task 3.4 MAP: Create a marker for the map. Use the makeMarker function above. *)
+                    (* Task 3.4 MAP: Create a marker for the map. Use the makeMarker function above. *)
+                    makeMarker (lr.Location.LatLong.Latitude, lr.Location.LatLong.Longitude)
                 ]
             ]
         ]
@@ -183,7 +196,7 @@ module ViewParts =
                                    and display it here instead of an empty string.
                                    Hint: Use sprintf with "%.2f" to round the temperature to 2 decimal points
                                    (look at the locationWidget for an example) *)
-                                Html.td ""
+                                Html.td (sprintf "%.2f degrees" weatherReport.Temperature)
                             ]
                         ]
                     ]
@@ -328,21 +341,24 @@ let view (model: Model) dispatch =
                 Bulma.section [
                     Bulma.columns [
                         Bulma.column [
+                            column.isOneFifth
                             prop.children [
-                                Bulma.columns [
-                                    Bulma.column [ column.isThreeFifths; prop.children [ locationWidget report ] ]
-                                    Bulma.column [
-                                    (* Task 4.5 WEATHER: Generate the view code for the weather tile
-                                           using the weatherWidget function, supplying the weather data
-                                           from the report value, and include it here as part of the list *)
-                                    ]
-                                ]
-                            (* Task 3.1 MAP: Call the mapWidget function here, which creates a
-                                   widget to display a map using the React ReCharts component. The function
-                                   takes in a LocationResponse value as input and returns a ReactElement. *)
+                                locationWidget report
+                                (* Task 4.5 WEATHER: Generate the view code for the weather tile
+                                    using the weatherWidget function, supplying the weather data
+                                    from the report value, and include it here as part of the list *)
+                                weatherWidget report.Weather
                             ]
                         ]
-                        Bulma.column [ column.is7; prop.children [ crimeWidget report.Crimes ] ]
+                        Bulma.column [
+                            prop.children [
+                                crimeWidget report.Crimes
+                                (* Task 3.1 MAP: Call the mapWidget function here, which creates a
+                                    widget to display a map using the React ReCharts component. The function
+                                    takes in a LocationResponse value as input and returns a ReactElement. *)
+                                mapWidget report.Location
+                            ]
+                        ]
                     ]
                 ]
 
