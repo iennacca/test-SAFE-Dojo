@@ -51,7 +51,7 @@ let init () =
 let dojoApi =
     Remoting.createApi ()
     |> Remoting.withRouteBuilder Route.builder
-    // |> Remoting.withBaseUrl "https://app-safe-dojo.azurewebsites.com"
+    |> Remoting.withBaseUrl "https://app-safe-dojo.azurewebsites.net"
     |> Remoting.buildProxy<IDojoApi>
 
 let getResponse postcode = async {
