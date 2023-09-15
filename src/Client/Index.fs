@@ -10,6 +10,7 @@ open Elmish.SweetAlert
 
 open Fable.Remoting.Client
 open Shared
+open Extensions
 
 /// The different elements of the completed report.
 type Report = {
@@ -48,11 +49,16 @@ let init () =
     },
     Cmd.none
 
-let dojoApi =
+let dojoApi: IDojoApi =
     Remoting.createApi ()
     |> Remoting.withRouteBuilder Route.builder
-    |> Remoting.withBaseUrl "https://app-safe-dojo.azurewebsites.net"
+    // |> Remoting.withBaseUrl "https://app-safe-dojo.azurewebsites.net"
     |> Remoting.buildProxy<IDojoApi>
+
+let metaApi: IMetaApi =
+    Remoting.createApi ()
+    |> Remoting.withRouteBuilder Route.builder
+    |> Remoting.buildProxy<IMetaApi>
 
 let getResponse postcode = async {
     let! location = dojoApi.GetDistance postcode
@@ -237,7 +243,7 @@ let navbar =
                                 prop.style [ style.color.white; style.transform.scaleX -1 ]
                                 prop.children [ Html.i [ prop.className "fas fa-unlock-alt" ] ]
                             ]
-                            Html.span [ prop.style [ style.color.white ]; prop.text "SAFE Dojo" ]
+                            Html.span [ prop.style [ style.color.white ]; prop.text ("SAFE Dojo") ]
                         ]
                     ]
                 ]
